@@ -1,0 +1,320 @@
+# מבנה הפרויקט:
+math-memory-game/
+├── public/
+│   └── index.html
+├── src/
+│   ├── components/
+│   │   └── MathMemoryGame.js
+│   ├── App.js
+│   └── index.js
+└── package.json
+
+# קובץ: public/index.html
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>משחק זיכרון מתמטי</title>
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
+
+# קובץ: src/components/MathMemoryGame.js
+import React, { useState, useEffect } from 'react';
+
+const generateEquation = (level) => {
+  if (level === 1) {
+    const a = Math.floor(Math.random() * 20) + 1;
+    const b = Math.floor(Math.random() * (20 - a)) + 1;
+    const operation = Math.random() < 0.5 ? '+' : '-';
+    const result = operation === '+' ? a + b : a - b;
+    return { equation: `${a} ${operation} ${b}`, result };
+  } else {
+    const result = Math.floor(Math.random() * 99) + 1;
+    const a = Math.floor(Math.random() * result) + 1;
+    const b = result - a;
+    return { equation: `${a} + ${b}`, result };
+  }
+};
+
+const generateCards = (level) => {
+  const cards = [];
+  for (let i = 0; i < 7; i++) {
+    const { equation, result } = generateEquation(level);
+    cards.push({ id: i * 2, content: equation, type: 'equation' });
+    cards.push({ id: i * 2 + 1, content: result.toString(), type: 'result' });
+  }
+  return cards.sort(() => Math.random() - 0.5);
+};
+
+const Card = ({ card, isFlipped, onClick }) => (
+  <div
+    onClick={onClick}
+    className={`card ${isFlipped ? 'flipped' : ''}`}
+  >
+    <span>{isFlipped ? card.content : '?'}</span>
+  </div>
+);
+
+const VictoryAnimation = () => (
+  <div className="victory-animation">
+    <div className="victory-content">
+      <div className="trophy">🏆</div>
+      <h2>כל הכבוד!</h2>
+      <p>סיימת את כל השלבים!</p>
+    </div>
+  </div>
+);
+
+const MathMemoryGame = () => {
+  const [cards, setCards] = useState([]);
+  const [flippedCards, setFlippedCards] = useState([]);
+  const [matchedCards, setMatchedCards] = useState([]);
+  const [level, setLevel] = useState(1);
+  const [showVictory, setShowVictory] = useState(false);
+
+  useEffect(() => {
+    setCards(generateCards(level));
+  }, [level]);
+
+  const handleCardClick = (card) => {
+    if (flippedCards.length === 2 || matchedCards.includes(card.id)) return;
+
+    const newFlippedCards = [...flippedCards, card];
+    setFlippedCards(newFlippedCards);
+
+    if (newFlippedCards.length === 2) {
+      const [first, second] = newFlippedCards;
+      if (
+        (first.type === 'equation' && second.type === 'result' && eval(first.content) === parseInt(second.content)) ||
+        (second.type === 'equation' && first.type === 'result' && eval(second.content) === parseInt(first.content))
+      ) {
+        setMatchedCards([...matchedCards, first.id, second.id]);
+      }
+      setTimeout(() => setFlippedCards([]), 1500);
+    }
+  };
+
+  const resetGame = () => {
+    setCards(generateCards(1));
+    setFlippedCards([]);
+    setMatchedCards([]);
+    setLevel(1);
+    setShowVictory(false);
+  };
+
+  const nextLevel = () => {
+    setLevel(2);
+    setFlippedCards([]);
+    setMatchedCards([]);
+  };
+
+  useEffect(() => {
+    if (matchedCards.length === 14 && level === 2) {
+      setShowVictory(true);
+    }
+  }, [matchedCards, level]);
+
+  return (
+    <div className="game-container">
+      <h1>משחק זיכרון מתמטי</h1>
+      <h2>שלב מספר {level}</h2>
+      <div className="cards-grid">
+        {cards.map((card) => (
+          <Card
+            key={card.id}
+            card={card}
+            isFlipped={flippedCards.includes(card) || matchedCards.includes(card.id)}
+            onClick={() => handleCardClick(card)}
+          />
+        ))}
+      </div>
+      {matchedCards.length === 14 && level === 1 && (
+        <button onClick={nextLevel} className="next-level-btn">
+          עבור לשלב הבא
+        </button>
+      )}
+      {matchedCards.length === 14 && level === 2 && (
+        <button onClick={resetGame} className="reset-btn">
+          התחל מחדש
+        </button>
+      )}
+      {showVictory && <VictoryAnimation />}
+    </div>
+  );
+};
+
+export default MathMemoryGame;
+
+# קובץ: src/App.js
+import React from 'react';
+import MathMemoryGame from './components/MathMemoryGame';
+import './App.css';
+
+function App() {
+  return (
+    <div className="App">
+      <MathMemoryGame />
+    </div>
+  );
+}
+
+export default App;
+
+# קובץ: src/index.js
+import React from 'react';
+import ReactDOM from 'react-dom';
+import App from './App';
+
+ReactDOM.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>,
+  document.getElementById('root')
+);
+
+# קובץ: src/App.css
+body {
+  font-family: Arial, sans-serif;
+  direction: rtl;
+  background: linear-gradient(to right, #4CAF50, #2196F3);
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+.game-container {
+  background-color: white;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+h1, h2 {
+  text-align: center;
+  color: #333;
+}
+
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.card {
+  background-color: #f0f0f0;
+  border-radius: 5px;
+  height: 100px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  font-size: 24px;
+  font-weight: bold;
+  transition: background-color 0.3s;
+}
+
+.card.flipped {
+  background-color: #2196F3;
+  color: white;
+}
+
+button {
+  display: block;
+  margin: 20px auto;
+  padding: 10px 20px;
+  font-size: 18px;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.next-level-btn {
+  background-color: #4CAF50;
+}
+
+.next-level-btn:hover {
+  background-color: #45a049;
+}
+
+.reset-btn {
+  background-color: #f44336;
+}
+
+.reset-btn:hover {
+  background-color: #d32f2f;
+}
+
+.victory-animation {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.victory-content {
+  text-align: center;
+  color: white;
+}
+
+.trophy {
+  font-size: 100px;
+  margin-bottom: 20px;
+  animation: bounce 0.5s infinite alternate;
+}
+
+@keyframes bounce {
+  from { transform: translateY(0); }
+  to { transform: translateY(-20px); }
+}
+
+# קובץ: package.json
+{
+  "name": "math-memory-game",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
+    "react-scripts": "4.0.3"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}
